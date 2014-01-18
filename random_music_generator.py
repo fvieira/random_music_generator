@@ -18,30 +18,31 @@ DEFAULT_DOT_PROBABILITY = F(1, 5)
 
 
 class RandomMusicGenerator(object):
-    def __init__(self, pitches=None, durations=None,
+    def __init__(self, pitches=None, durations=None, measure_size=DEFAULT_MEASURE_SIZE,
                  rest_probability=DEFAULT_REST_PROBABILITY, dot_probability=DEFAULT_DOT_PROBABILITY):
         if pitches is None:
             self.pitches = DEFAULT_NATURAL_PITCHES
         if durations is None:
             self.durations = DEFAULT_DURATIONS
+        self.durations = self.filter_duration_probabilities(self.durations, F(measure_size, 4))
+        self.measure_size = measure_size
         self.rest_probability = rest_probability
         self.dot_probability = dot_probability
         self.minimum_duration = min(self.durations, key=lambda d: d[0])[0]
 
-    def generate_random_score(self, length=DEFAULT_SCORE_LENGTH, measure_size=DEFAULT_MEASURE_SIZE):
+    def generate_random_score(self, length=DEFAULT_SCORE_LENGTH):
         staff = Staff([])
         score = Score([staff])
         for measure_number in xrange(length):
-            measure = self.generate_random_measure(measure_size)
+            measure = self.generate_random_measure()
             staff.append(measure)
         return score
 
-    def generate_random_measure(self, measure_size=DEFAULT_MEASURE_SIZE):
+    def generate_random_measure(self):
         durations = copy.deepcopy(self.durations)
-        measure_space_left = F(measure_size, 4)
+        measure_space_left = F(self.measure_size, 4)
         notes = []
         while measure_space_left > 0:
-            durations = self.filter_duration_probabilities(durations, measure_space_left)
             duration = self.pick_random_duration(durations)
             # Handle dots
             if (duration != self.minimum_duration and
@@ -63,9 +64,10 @@ class RandomMusicGenerator(object):
                 note = Note(pitch, duration)
             notes.append(note)
             measure_space_left -= duration
+            durations = self.filter_duration_probabilities(durations, measure_space_left)
 
         assert measure_space_left == 0
-        return Measure((measure_size, 4), notes)
+        return Measure((self.measure_size, 4), notes)
 
     def filter_duration_probabilities(self, durations, space_left):
         total_probability = 0
@@ -79,12 +81,12 @@ class RandomMusicGenerator(object):
         for duration, probability in filtered_durations:
             new_probability = F(probability, total_probability)
             normalized_durations.append((duration, new_probability))
-        assert len(normalized_durations) > 0
 
-        new_total_probability = 0
-        for duration, probability in normalized_durations:
-            new_total_probability += probability
-        assert new_total_probability == 1
+        if normalized_durations:
+            new_total_probability = 0
+            for duration, probability in normalized_durations:
+                new_total_probability += probability
+            assert new_total_probability == 1
 
         return normalized_durations
 
