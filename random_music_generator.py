@@ -1,5 +1,5 @@
 import abjad
-from abjad import Rest, Note, Staff, Score, Measure, Tie, Duration as D, show
+from abjad import Rest, Note, Staff, Score, Measure, Tie, Duration as D
 from fractions import Fraction as F
 import random
 import copy
@@ -45,6 +45,7 @@ class RandomMusicGenerator(object):
                     staff[-1][0] = Note(staff[-2][-1].written_pitch, staff[-1][0].written_duration)
                     abjad.attach(Tie(), [staff[-2][-1], staff[-1][0]])
 
+        score.add_double_bar()
         return score
 
     def generate_random_measure(self):
@@ -108,13 +109,29 @@ class RandomMusicGenerator(object):
                 return duration
 
 
+def output_score(score, ly_filepath, as_pdf=True, as_midi=True):
+    illustration = score.__illustrate__()
+    if as_midi:
+        illustration.score_block.append(abjad.lilypondfiletools.MIDIBlock())
+    if as_pdf:
+        layout_block = abjad.lilypondfiletools.LayoutBlock()
+        layout_block.indent = 0
+        illustration.score_block.append(layout_block)
+    lilypond_format = format(illustration, 'lilypond')
+    with open(ly_filepath, 'w') as f:
+        f.write(lilypond_format)
+    if as_midi or as_pdf:
+        abjad.systemtools.IOManager.run_lilypond(ly_filepath)
+
+
 def main():
     random_music_generator = RandomMusicGenerator()
     score = random_music_generator.generate_random_score()
-    score.add_double_bar()
-    lilypond_file = abjad.lilypondfiletools.make_basic_lilypond_file(score)
-    abjad.f(lilypond_file)
-    show(score)
+    ly_filepath = '/tmp/test.ly'
+    output_score(score, ly_filepath)
+    with open(ly_filepath) as f:
+        print(f.read())
+    abjad.systemtools.IOManager.open_file('/tmp/test.pdf')
 
 
 if __name__ == '__main__':
