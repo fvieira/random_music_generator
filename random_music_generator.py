@@ -64,7 +64,7 @@ class RandomMusicGenerator(object):
                     try:
                         note = Rest(notes[-1].written_duration + duration)
                         notes.pop()
-                    except abjad.AssignabilityError:
+                    except abjad.exceptiontools.AssignabilityError:
                         note = Rest(duration)
                 else:
                     note = Rest(duration)
