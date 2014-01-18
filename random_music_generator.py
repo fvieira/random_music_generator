@@ -4,27 +4,28 @@ from fractions import Fraction as F
 import random
 import copy
 
-POTENTIAL_NOTES = ["c'", "d'", "e'", "f'", "g'", "a'", "b'",
-                   "c''", "d''", "e''", "f''", "g''", "a''", "b''"]
+DEFAULT_NATURAL_PITCHES = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23]
 
 # List of pairs duration/probability. A duration with probability 5
 # compared to a duration with probability 3 will appear 5/3 times more.
 DEFAULT_DURATIONS = [(D(1), F(1, 14)), (D(1, 2), F(3, 14)), (D(1, 4), F(5, 14)), (D(1, 8), F(5, 14))]
 
-DEFAULT_SCORE_LENGTH = 4
+DEFAULT_SCORE_LENGTH = 20
 DEFAULT_MEASURE_SIZE = 4
 
-REST_PROBABILITY = F(1, 5)
-
-DOT_PROBABILITY = F(1, 5)
+DEFAULT_REST_PROBABILITY = F(1, 5)
+DEFAULT_DOT_PROBABILITY = F(1, 5)
 
 
 class RandomMusicGenerator(object):
-    def __init__(self, potential_notes=None, durations=None):
-        if potential_notes is None:
-            self.potential_notes = POTENTIAL_NOTES
+    def __init__(self, pitches=None, durations=None,
+                 rest_probability=DEFAULT_REST_PROBABILITY, dot_probability=DEFAULT_DOT_PROBABILITY):
+        if pitches is None:
+            self.pitches = DEFAULT_NATURAL_PITCHES
         if durations is None:
             self.durations = DEFAULT_DURATIONS
+        self.rest_probability = rest_probability
+        self.dot_probability = dot_probability
         self.minimum_duration = min(self.durations, key=lambda d: d[0])[0]
 
     def generate_random_score(self, length=DEFAULT_SCORE_LENGTH, measure_size=DEFAULT_MEASURE_SIZE):
@@ -45,13 +46,21 @@ class RandomMusicGenerator(object):
             # Handle dots
             if (duration != self.minimum_duration and
                     duration * D(3, 2) <= measure_space_left and
-                    random.random() < DOT_PROBABILITY):
+                    random.random() < self.dot_probability):
                 duration = duration * D(3, 2)
             # Handle rests
-            if random.random() < REST_PROBABILITY:
-                note = Rest(duration)
+            if random.random() < self.rest_probability:
+                if notes and isinstance(notes[-1], Rest):
+                    try:
+                        note = Rest(notes[-1].written_duration + duration)
+                        notes.pop()
+                    except abjad.AssignabilityError:
+                        note = Rest(duration)
+                else:
+                    note = Rest(duration)
             else:
-                note = Note(random.choice(self.potential_notes), duration)
+                pitch = random.choice(self.pitches)
+                note = Note(pitch, duration)
             notes.append(note)
             measure_space_left -= duration
 
@@ -90,7 +99,7 @@ class RandomMusicGenerator(object):
 
 def main():
     random_music_generator = RandomMusicGenerator()
-    score = random_music_generator.generate_random_score(20)
+    score = random_music_generator.generate_random_score()
     score.add_double_bar()
     lilypond_file = abjad.lilypondfiletools.make_basic_lilypond_file(score)
     abjad.f(lilypond_file)
