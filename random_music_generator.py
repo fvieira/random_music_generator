@@ -1,5 +1,5 @@
 import abjad
-from abjad import Rest, Note, Staff, Score, Measure, Duration as D, show
+from abjad import Rest, Note, Staff, Score, Measure, Tie, Duration as D, show
 from fractions import Fraction as F
 import random
 import copy
@@ -15,11 +15,13 @@ DEFAULT_MEASURE_SIZE = 4
 
 DEFAULT_REST_PROBABILITY = F(1, 5)
 DEFAULT_DOT_PROBABILITY = F(1, 5)
+DEFAULT_TIE_PROBABILITY = F(1, 3)
 
 
 class RandomMusicGenerator(object):
     def __init__(self, pitches=None, durations=None, measure_size=DEFAULT_MEASURE_SIZE,
-                 rest_probability=DEFAULT_REST_PROBABILITY, dot_probability=DEFAULT_DOT_PROBABILITY):
+                 rest_probability=DEFAULT_REST_PROBABILITY, dot_probability=DEFAULT_DOT_PROBABILITY,
+                 tie_probability=DEFAULT_TIE_PROBABILITY):
         if pitches is None:
             self.pitches = DEFAULT_NATURAL_PITCHES
         if durations is None:
@@ -28,6 +30,7 @@ class RandomMusicGenerator(object):
         self.measure_size = measure_size
         self.rest_probability = rest_probability
         self.dot_probability = dot_probability
+        self.tie_probability = tie_probability
         self.minimum_duration = min(self.durations, key=lambda d: d[0])[0]
 
     def generate_random_score(self, length=DEFAULT_SCORE_LENGTH):
@@ -36,6 +39,12 @@ class RandomMusicGenerator(object):
         for measure_number in xrange(length):
             measure = self.generate_random_measure()
             staff.append(measure)
+            # Handle ties
+            if len(staff) > 1 and random.random() < self.tie_probability:
+                if isinstance(staff[-2][-1], Note):
+                    staff[-1][0] = Note(staff[-2][-1].written_pitch, staff[-1][0].written_duration)
+                    abjad.attach(Tie(), [staff[-2][-1], staff[-1][0]])
+
         return score
 
     def generate_random_measure(self):
