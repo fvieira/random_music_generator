@@ -8,20 +8,22 @@ DEFAULT_NATURAL_PITCHES = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23]
 
 # List of pairs duration/probability. A duration with probability 5
 # compared to a duration with probability 3 will appear 5/3 times more.
-DEFAULT_DURATIONS = [(D(1), F(1, 14)), (D(1, 2), F(3, 14)), (D(1, 4), F(5, 14)), (D(1, 8), F(5, 14))]
+DEFAULT_DURATIONS = [
+    (D(1), F(10)), (D(7, 8), F(1,)), (D(6, 8), F(5,)), (D(1, 2), F(30)),
+    (D(3, 8), F(5,)), (D(1, 4), F(50)), (D(1, 8), F(50)),
+]
 
-DEFAULT_SCORE_LENGTH = 20
+
+DEFAULT_SCORE_LENGTH = 50
 DEFAULT_MEASURE_SIZE = 4
 
 DEFAULT_REST_PROBABILITY = F(1, 5)
-DEFAULT_DOT_PROBABILITY = F(1, 5)
 DEFAULT_TIE_PROBABILITY = F(1, 3)
 
 
 class RandomMusicGenerator(object):
     def __init__(self, pitches=None, durations=None, measure_size=DEFAULT_MEASURE_SIZE,
-                 rest_probability=DEFAULT_REST_PROBABILITY, dot_probability=DEFAULT_DOT_PROBABILITY,
-                 tie_probability=DEFAULT_TIE_PROBABILITY):
+                 rest_probability=DEFAULT_REST_PROBABILITY, tie_probability=DEFAULT_TIE_PROBABILITY):
         if pitches is None:
             self.pitches = DEFAULT_NATURAL_PITCHES
         if durations is None:
@@ -29,22 +31,21 @@ class RandomMusicGenerator(object):
         self.durations = self.filter_duration_probabilities(self.durations, F(measure_size, 4))
         self.measure_size = measure_size
         self.rest_probability = rest_probability
-        self.dot_probability = dot_probability
         self.tie_probability = tie_probability
-        self.minimum_duration = min(self.durations, key=lambda d: d[0])[0]
 
     def generate_random_score(self, length=DEFAULT_SCORE_LENGTH):
-        staff = Staff([])
-        score = Score([staff])
-        for measure_number in xrange(length):
+        measure_list = []
+        for _ in xrange(length):
             measure = self.generate_random_measure()
-            staff.append(measure)
+            measure_list.append(measure)
             # Handle ties
-            if len(staff) > 1 and random.random() < self.tie_probability:
-                if isinstance(staff[-2][-1], Note):
-                    staff[-1][0] = Note(staff[-2][-1].written_pitch, staff[-1][0].written_duration)
-                    abjad.attach(Tie(), [staff[-2][-1], staff[-1][0]])
+            if len(measure_list) > 1 and random.random() < self.tie_probability:
+                if isinstance(measure_list[-2][-1], Note):
+                    measure_list[-1][0] = Note(measure_list[-2][-1].written_pitch, measure_list[-1][0].written_duration)
+                    abjad.attach(Tie(), [measure_list[-2][-1], measure_list[-1][0]])
 
+        staff = Staff(measure_list)
+        score = Score([staff])
         score.add_double_bar()
         return score
 
@@ -54,14 +55,10 @@ class RandomMusicGenerator(object):
         notes = []
         while measure_space_left > 0:
             duration = self.pick_random_duration(durations)
-            # Handle dots
-            if (duration != self.minimum_duration and
-                    duration * D(3, 2) <= measure_space_left and
-                    random.random() < self.dot_probability):
-                duration = duration * D(3, 2)
             # Handle rests
             if random.random() < self.rest_probability:
                 if notes and isinstance(notes[-1], Rest):
+                    # Merge rest to previous rest
                     try:
                         note = Rest(notes[-1].written_duration + duration)
                         notes.pop()
