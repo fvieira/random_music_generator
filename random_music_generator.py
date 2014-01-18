@@ -1,5 +1,5 @@
 import abjad
-from abjad import Rest, Note, Staff, Score, Measure, Tie, Duration as D
+from abjad import Rest, Note, Staff, Score, Measure, Tie
 from fractions import Fraction as F
 import random
 import copy
@@ -9,8 +9,8 @@ DEFAULT_NATURAL_PITCHES = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23]
 # List of pairs duration/probability. A duration with probability 5
 # compared to a duration with probability 3 will appear 5/3 times more.
 DEFAULT_DURATIONS = [
-    (D(1), F(10)), (D(7, 8), F(1,)), (D(6, 8), F(5,)), (D(1, 2), F(30)),
-    (D(3, 8), F(5,)), (D(1, 4), F(50)), (D(1, 8), F(50)),
+    (F(1), F(10)), (F(7, 8), F(1)), (F(6, 8), F(5)), (F(1, 2), F(30)),
+    (F(3, 8), F(5)), (F(1, 4), F(50)), (F(1, 8), F(50)),
 ]
 
 
@@ -39,10 +39,10 @@ class RandomMusicGenerator(object):
             measure = self.generate_random_measure()
             measure_list.append(measure)
             # Handle ties
-            if len(measure_list) > 1 and random.random() < self.tie_probability:
-                if isinstance(measure_list[-2][-1], Note):
-                    measure_list[-1][0] = Note(measure_list[-2][-1].written_pitch, measure_list[-1][0].written_duration)
-                    abjad.attach(Tie(), [measure_list[-2][-1], measure_list[-1][0]])
+            if (len(measure_list) > 1 and isinstance(measure_list[-2][-1], Note) and
+                    random.random() < self.tie_probability):
+                measure_list[-1][0] = Note(measure_list[-2][-1].written_pitch, measure_list[-1][0].written_duration)
+                abjad.attach(Tie(), [measure_list[-2][-1], measure_list[-1][0]])
 
         staff = Staff(measure_list)
         score = Score([staff])
