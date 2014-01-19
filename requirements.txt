@@ -1,0 +1,13 @@
+Abjad==2.14
+Jinja2==2.7.2
+MarkupSafe==0.18
+Pygments==1.6
+Sphinx==1.2
+argparse==1.2.1
+configobj==4.7.2
+docutils==0.11
+gunicorn==18.0
+ply==3.4
+py==1.4.19
+pytest==2.5.1
+wsgiref==0.1.2

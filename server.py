@@ -110,4 +110,4 @@ def get_sub_dict(orig_dict, keys):
     return sub_dict
 
 app.install(EnableCors())
-app.run(host='localhost', port=8081, reloader=True, debug=True)
+# app.run(host='localhost', port=8081, reloader=True, debug=True)
