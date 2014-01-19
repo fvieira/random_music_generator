@@ -34,6 +34,9 @@ class RandomMusicGenerator(object):
         self.tie_probability = tie_probability
 
     def generate_random_score(self, length=DEFAULT_SCORE_LENGTH):
+        """
+        Generates a random score with the given length in measures.
+        """
         measure_list = []
         for _ in xrange(length):
             measure = self.generate_random_measure()
@@ -50,6 +53,9 @@ class RandomMusicGenerator(object):
         return score
 
     def generate_random_measure(self):
+        """
+        Generates a random measure.
+        """
         durations = copy.deepcopy(self.durations)
         measure_space_left = F(self.measure_size, 4)
         notes = []
@@ -77,6 +83,12 @@ class RandomMusicGenerator(object):
         return Measure((self.measure_size, 4), notes)
 
     def filter_duration_probabilities(self, durations, space_left):
+        """
+        Filter durations and recalculate probabilities.
+        """
+
+        # Filter durations based on whether they still fit
+        # in the current measure.
         total_probability = 0
         filtered_durations = []
         for duration, probability in durations:
@@ -84,20 +96,26 @@ class RandomMusicGenerator(object):
                 filtered_durations.append((duration, probability))
                 total_probability += probability
 
+        # Since some probability might have been filtered we need to
+        # recalculate the probabilities of each duration so that the sum is 1
         normalized_durations = []
+        new_total_probability = 0
         for duration, probability in filtered_durations:
             new_probability = F(probability, total_probability)
             normalized_durations.append((duration, new_probability))
+            new_total_probability += new_probability
 
+        # Test that the sum is 1 indeed
         if normalized_durations:
-            new_total_probability = 0
-            for duration, probability in normalized_durations:
-                new_total_probability += probability
             assert new_total_probability == 1
 
         return normalized_durations
 
     def pick_random_duration(self, durations):
+        """
+        Pick a random duration respecting the probabilities associated
+        with each duration.
+        """
         r = random.random()
         current_probability = 0
         for duration, probability in durations:
@@ -107,6 +125,10 @@ class RandomMusicGenerator(object):
 
 
 def output_score(score, ly_filepath, as_pdf=True, as_midi=True):
+    """
+    Output the score as a lilypond file,
+    and optionally as a pdf and midi also.
+    """
     illustration = score.__illustrate__()
     if as_midi:
         illustration.score_block.append(abjad.lilypondfiletools.MIDIBlock())
