@@ -12,7 +12,20 @@ app = bottle.app()
 CACHE_FOLDER = '/tmp/random_music_generator'
 
 
-@app.post('/generate_random_music')
+class EnableCors(object):
+    name = 'enable_cors'
+    api = 2
+
+    def apply(self, fn, context):
+        def _enable_cors(*args, **kwargs):
+            if bottle.request.method != 'OPTIONS':
+                # actual request; reply with the actual response
+                return fn(*args, **kwargs)
+
+        return _enable_cors
+
+
+@app.route('/generate_random_music', method=['POST', 'OPTIONS'])
 def generate_random_music():
     music_params = validate_params()
     music_id = '{0:032x}'.format(random.getrandbits(128))
@@ -20,24 +33,26 @@ def generate_random_music():
     return {'music_id': music_id}
 
 
-@app.get('/get_music_as_ly/:music_id')
+@app.route('/get_music_as_ly/:music_id', method=['GET', 'OPTIONS'])
 def get_music_as_ly(music_id):
     return get_music_as(music_id, 'ly')
 
 
-@app.get('/get_music_as_pdf/:music_id')
+@app.route('/get_music_as_pdf/:music_id', method=['GET', 'OPTIONS'])
 def get_music_as_pdf(music_id):
     return get_music_as(music_id, 'pdf')
 
 
-@app.get('/get_music_as_midi/:music_id')
+@app.route('/get_music_as_midi/:music_id', method=['GET', 'OPTIONS'])
 def get_music_as_midi(music_id):
     return get_music_as(music_id, 'midi')
 
 
 def get_music_as(music_id, output_type):
     filename = '{0}.{1}'.format(music_id, output_type)
-    return static_file(filename, root=CACHE_FOLDER)
+    resp = static_file(filename, root=CACHE_FOLDER)
+    resp.headers['Content-Disposition'] = 'attachment; filename=random_music.{0}'.format(output_type)
+    return resp
 
 
 def validate_params():
@@ -94,6 +109,5 @@ def get_sub_dict(orig_dict, keys):
             sub_dict[key] = orig_dict[key]
     return sub_dict
 
-
-# app.install(EnableCors())
+app.install(EnableCors())
 app.run(host='localhost', port=8081, reloader=True, debug=True)
