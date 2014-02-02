@@ -24,10 +24,8 @@ DEFAULT_TIE_PROBABILITY = F(1, 3)
 class RandomMusicGenerator(object):
     def __init__(self, pitches=None, durations=None, measure_size=DEFAULT_MEASURE_SIZE,
                  rest_probability=DEFAULT_REST_PROBABILITY, tie_probability=DEFAULT_TIE_PROBABILITY):
-        if pitches is None:
-            self.pitches = DEFAULT_NATURAL_PITCHES
-        if durations is None:
-            self.durations = DEFAULT_DURATIONS
+        self.pitches = DEFAULT_NATURAL_PITCHES if (pitches is None) else pitches
+        self.durations = DEFAULT_DURATIONS if (durations is None) else durations
         self.durations = self.filter_duration_probabilities(self.durations, F(measure_size, 4))
         self.measure_size = measure_size
         self.rest_probability = rest_probability
